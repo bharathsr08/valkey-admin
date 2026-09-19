@@ -90,6 +90,11 @@ export function findBlockedCommand(parsedArgs: string[]): CommandRestriction | u
   return BLOCKED_COMMANDS.find((r) => matchesRestriction(parsedArgs, r))
 }
 
+/**
+ * Returns the first confirmation rule matching the parsed command and connection context.
+ * Cluster-only rules apply only when options.isCluster is true; omitted context
+ * preserves standalone behavior. Returns undefined when no confirmation is required.
+ */
 export function findConfirmCommand(
   parsedArgs: string[],
   options?: { isCluster?: boolean },
