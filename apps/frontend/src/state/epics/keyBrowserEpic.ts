@@ -1,5 +1,6 @@
-import { tap } from "rxjs/operators"
+import { tap, ignoreElements } from "rxjs/operators"
 import { merge } from "rxjs"
+import { toast } from "sonner"
 import { selectKeyBrowserState } from "../valkey-features/keys/keyBrowserSelectors"
 import { getSocket } from "./wsEpics"
 import {
@@ -8,6 +9,7 @@ import {
   getKeyTypeRequested,
   deleteKeyRequested,
   addKeyRequested,
+  addKeyFailed,
   updateKeyRequested
 } from "../valkey-features/keys/keyBrowserSlice"
 import { action$, select } from "../middleware/rxjsMiddleware/rxjsMiddleware"
@@ -64,6 +66,13 @@ export const keyBrowserEpic = (store: Store) =>
         console.debug("Sending addKey request to server...")
         socket.next(action)
       }),
+    ),
+
+    // handle addKey failure (addKeyFailed)
+    action$.pipe(
+      select(addKeyFailed),
+      tap(({ payload }) => toast.error(`Failed to add key: ${payload.error}`)),
+      ignoreElements(),
     ),
 
     // update existing key (updateKey)

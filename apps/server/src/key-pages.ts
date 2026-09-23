@@ -25,8 +25,9 @@ export async function scanKeyPage(client: Client, owner: object, payload: KeyPag
     continuations.set(owner, tokens)
   }
   for (const [token, state] of tokens) if (state.expires < Date.now()) tokens.delete(token)
-  const command = (cursor: string) => [
-    "SCAN", cursor, "MATCH", payload.pattern ?? "*", "COUNT", String(KEY_PAGE_SIZE),
+  /** Builds a bounded scan with the same filters on every primary and page. */
+  const command = (cursor: string, count = KEY_PAGE_SIZE) => [
+    "SCAN", cursor, "MATCH", payload.pattern ?? "*", "COUNT", String(count),
     ...(payload.keyType ? ["TYPE", payload.keyType] : []),
   ]
   let nodes: NodeScan[]
@@ -37,6 +38,15 @@ export async function scanKeyPage(client: Client, owner: object, payload: KeyPag
     }
     // Keep input tokens immutable so retries cannot skip a partially consumed page.
     nodes = saved.nodes.map((node) => ({ ...node, pending: [...node.pending] }))
+    if (client instanceof GlideClusterClient) {
+      // A small probe discovers addresses without adding command permissions.
+      const primaries = await client.customCommand(command("0", 1), { route: "allPrimaries" }) as
+        { key: string; value: [string, string[]] }[]
+      const addresses = new Set(primaries.map(({ key }) => key))
+      if (nodes.some((node) => node.address && !addresses.has(node.address))) {
+        throw new KeyScanExpiredError()
+      }
+    }
   } else if (client instanceof GlideClusterClient) {
     const results = await client.customCommand(command("0"), { route: "allPrimaries" }) as
       { key: string; value: [string, string[]] }[]

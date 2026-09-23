@@ -97,7 +97,7 @@ Each `(host, port, db)` triple maps to its own client connection on the server, 
 
 The `keyBrowser/getKeysRequested` websocket action accepts `connectionId`, optional `pattern` and `keyType`, an opaque `cursor` from the previous response, and a `requestId` echoed in success/failure replies. Omit the cursor to start over. `getKeysFulfilled` includes `keys`, database-wide `totalKeys`, and `cursor`; only cursor `"0"` means the scan is finished. Clients must deduplicate keys and discard replies for superseded request IDs. A request returns at most 200 keys and performs at most eight continuation SCAN calls after initial node discovery. The legacy `count` field is accepted but the server controls scan batch size.
 
-Continuation tokens are bound to the websocket, Valkey client and query. The server retains at most 32 tokens per websocket for 30 minutes; invalid or expired tokens produce `getKeysFailed` with `restartRequired: true` and offer **Restart scan**. A changed topology may also require a fresh scan.
+Continuation tokens are bound to the websocket, Valkey client and query. The server retains at most 32 tokens per websocket for 30 minutes; invalid or expired tokens produce `getKeysFailed` with `restartRequired: true` and offer **Restart scan**. Before resuming a cluster scan, an additional SCAN probe with COUNT 1 to all current primaries checks that saved primary addresses are still present without advancing the saved scan. A missing primary offers **Restart scan**; ordinary command failures retain the continuation for **Retry**.
 
 ## Next Steps
 

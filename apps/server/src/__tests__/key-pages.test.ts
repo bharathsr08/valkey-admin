@@ -3,6 +3,7 @@ import assert from "node:assert/strict"
 import { GlideClusterClient, type GlideClient } from "@valkey/valkey-glide"
 import { KeyScanExpiredError, scanKeyPage } from "../key-pages"
 
+/** Creates distinct keys for scan batches that cross page boundaries. */
 const names = (count: number) => Array.from({ length: count }, (_, i) => `key:${i}`)
 
 describe("key scan pages", () => {
@@ -67,7 +68,14 @@ describe("key scan pages", () => {
 
   it("preserves progress on every cluster primary", async () => {
     const client = Object.create(GlideClusterClient.prototype) as GlideClusterClient
-    client.customCommand = async (_args, options) => {
+    client.customCommand = async (args, options) => {
+      if (args[5] === "1") {
+        assert.equal(options?.route, "allPrimaries")
+        return [
+          { key: "127.0.0.1:7001", value: ["1", ["probe-only"]] },
+          { key: "127.0.0.1:7002", value: ["0", []] },
+        ]
+      }
       if (options?.route === "allPrimaries") return [
         { key: "127.0.0.1:7001", value: ["1", names(250)] },
         { key: "127.0.0.1:7002", value: ["0", ["other"]] },
@@ -85,5 +93,45 @@ describe("key scan pages", () => {
     } while (cursor !== "0")
     assert.equal(found.size, 252)
     assert.ok(found.has("last") && found.has("other"))
+  })
+
+  it("requires a restart when a saved primary is replaced, including buffered keys", async () => {
+    const client = Object.create(GlideClusterClient.prototype) as GlideClusterClient
+    let address = "127.0.0.1:7001"
+    client.customCommand = async (args, options) => {
+      assert.equal(options?.route, "allPrimaries")
+      return [{ key: address, value: args[5] === "1" ? ["1", ["probe-only"]] : ["0", names(250)] }]
+    }
+    const owner = {}
+    const first = await scanKeyPage(client, owner, { connectionId: "cluster" })
+    address = "127.0.0.1:7002"
+    await assert.rejects(scanKeyPage(client, owner, {
+      connectionId: "cluster", cursor: first.cursor,
+    }), KeyScanExpiredError)
+    const restarted = await scanKeyPage(client, owner, { connectionId: "cluster" })
+    assert.equal(restarted.keys.length, 200)
+    const last = await scanKeyPage(client, owner, { connectionId: "cluster", cursor: restarted.cursor })
+    assert.equal(last.keys.length, 50)
+    assert.equal(last.cursor, "0")
+  })
+
+  it("preserves ordinary command failures and allows retrying the same continuation", async () => {
+    const client = Object.create(GlideClusterClient.prototype) as GlideClusterClient
+    const failure = new Error("Connection temporarily unavailable")
+    let fail = false
+    client.customCommand = async (args, options) => {
+      assert.equal(options?.route, "allPrimaries")
+      if (args[5] === "1" && fail) throw failure
+      return [{ key: "127.0.0.1:7001", value: args[5] === "1" ? ["1", ["probe-only"]] : ["0", names(250)] }]
+    }
+    const owner = {}
+    const first = await scanKeyPage(client, owner, { connectionId: "cluster" })
+    const request = { connectionId: "cluster", cursor: first.cursor }
+    fail = true
+    await assert.rejects(scanKeyPage(client, owner, request), (error) => error === failure)
+    fail = false
+    const retried = await scanKeyPage(client, owner, request)
+    assert.equal(retried.keys.length, 50)
+    assert.equal(retried.cursor, "0")
   })
 })
