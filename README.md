@@ -12,7 +12,7 @@ Full documentation lives at **[valkey-admin.valkey.io](https://valkey-admin.valk
 - **[Cluster Topology](https://valkey-admin.valkey.io/features/cluster-topology/)** — Visual map of shards, primaries, and replicas with per-node metrics.
 - **[Activity](https://valkey-admin.valkey.io/features/activity/)** — Hot Keys monitoring plus Command Logs (slow commands, large requests, large replies) aggregated across the cluster.
 
-Send Command asks for confirmation before running `SELECT` on cluster connections because it can change the database on the shared client and affect other operations. Select the database when creating the connection instead.
+Send Command blocks `SELECT`, `AUTH`, `HELLO`, `RESET`, and `QUIT` on both standalone and cluster connections to prevent changes to shared connection state. These commands cannot be overridden by confirmation. This restriction does not add database-selection UI.
 
 ## Compatibility
 

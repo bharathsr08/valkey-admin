@@ -85,10 +85,7 @@ export function SendCommand() {
       return
     }
 
-    const confirm = findConfirmCommand(parsedArgs, {
-      isCluster: Boolean(clusterId),
-    })
-
+    const confirm = findConfirmCommand(parsedArgs)
     if (confirm) {
       setPendingConfirm({ command: cmd, reason: confirm.reason })
       return

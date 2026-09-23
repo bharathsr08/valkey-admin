@@ -4,6 +4,22 @@ import { findBlockedCommand, findConfirmCommand, parseCommandArgs } from "../com
 
 describe("command restrictions", () => {
   describe("findBlockedCommand", () => {
+    for (const name of ["SELECT", "AUTH", "HELLO", "RESET", "QUIT"]) {
+      for (const command of [name, name.toLowerCase(), `"${name}"`, `'${name.toLowerCase()}'`]) {
+        it(`blocks connection-state command ${command} without connection context`, () => {
+          const restriction = findBlockedCommand(parseCommandArgs(`  ${command}  argument  `))
+          assert.deepStrictEqual(restriction?.pattern, [name])
+          assert.match(restriction!.reason, /shared connection/)
+        })
+      }
+    }
+
+    it("does not confuse arguments, prefixes or subcommands with blocked commands", () => {
+      for (const command of ["GET SELECT", "SET AUTH value", "SELECTED 1", "CLIENT INFO", "PING", "CLUSTER RESET", ""]) {
+        assert.strictEqual(findBlockedCommand(parseCommandArgs(command)), undefined, command)
+      }
+    })
+
     it("blocks FLUSHALL", () => {
       assert.ok(findBlockedCommand(parseCommandArgs("FLUSHALL")))
     })
@@ -39,34 +55,16 @@ describe("command restrictions", () => {
   })
 
   describe("findConfirmCommand", () => {
-    for (const command of ["SELECT 1", "select 1", "\"SELECT\" 1", "'select' 1"]) {
-      it(`requires confirmation for ${command} on cluster connections`, () => {
-        const restriction = findConfirmCommand(parseCommandArgs(command), { isCluster: true })
-        assert.deepStrictEqual(restriction?.pattern, ["SELECT"])
-        assert.match(restriction!.reason, /shared cluster client/)
-      })
-    }
-
-    it("does not require SELECT confirmation on standalone connections", () => {
-      assert.strictEqual(findConfirmCommand(parseCommandArgs("SELECT 1"), { isCluster: false }), undefined)
+    it("does not offer confirmation for blocked connection-state commands", () => {
+      for (const command of ["SELECT 1", "AUTH user secret", "HELLO 3", "RESET", "QUIT"]) {
+        assert.ok(findBlockedCommand(parseCommandArgs(command)))
+        assert.strictEqual(findConfirmCommand(parseCommandArgs(command)), undefined)
+      }
     })
 
-    it("preserves SELECT behavior when cluster context is omitted", () => {
-      assert.strictEqual(findConfirmCommand(parseCommandArgs("SELECT 1")), undefined)
-      assert.strictEqual(findConfirmCommand(parseCommandArgs("SELECT 1"), {}), undefined)
-    })
-
-    for (const isCluster of [true, false]) {
-      it(`preserves existing confirmation rules with isCluster=${isCluster}`, () => {
-        for (const command of ["KEYS *", "CONFIG RESETSTAT", "CONFIG REWRITE", "SLAVEOF host 6379", "REPLICAOF host 6379", "CLUSTER RESET"]) {
-          assert.ok(findConfirmCommand(parseCommandArgs(command), { isCluster }), command)
-        }
-      })
-    }
-
-    it("does not confirm unrelated commands on cluster connections", () => {
-      for (const command of ["GET SELECT", "SELECTED 1", ""]) {
-        assert.strictEqual(findConfirmCommand(parseCommandArgs(command), { isCluster: true }), undefined)
+    it("preserves existing confirmation rules", () => {
+      for (const command of ["KEYS *", "CONFIG RESETSTAT", "CONFIG REWRITE", "SLAVEOF host 6379", "REPLICAOF host 6379", "CLUSTER RESET"]) {
+        assert.ok(findConfirmCommand(parseCommandArgs(command)), command)
       }
     })
 
