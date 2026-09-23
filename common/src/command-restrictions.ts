@@ -77,6 +77,10 @@ export const CONFIRM_COMMANDS: CommandRestriction[] = [
   { pattern: ["CLUSTER", "RESET"], reason: "CLUSTER RESET resets the cluster state and may cause data loss." },
 ]
 
+/**
+ * Matches the leading command/subcommand tokens against an uppercase restriction
+ * pattern, ignoring input case and allowing trailing command arguments.
+ */
 export function matchesRestriction(parsedArgs: string[], restriction: CommandRestriction): boolean {
   const parts = parsedArgs.map((p) => p.toUpperCase())
   return (
@@ -85,6 +89,10 @@ export function matchesRestriction(parsedArgs: string[], restriction: CommandRes
   )
 }
 
+/**
+ * Returns the first blocking rule for a parsed command on any connection type,
+ * or undefined when no block applies. Shared by the UI and backend enforcement.
+ */
 export function findBlockedCommand(parsedArgs: string[]): CommandRestriction | undefined {
   return BLOCKED_COMMANDS.find((r) => matchesRestriction(parsedArgs, r))
 }
