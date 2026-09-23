@@ -22,6 +22,8 @@ Navigate through your keyspace with an intuitive interface that supports filteri
 
 Each request performs bounded scan work. A sparse search may return no keys while more scan work remains; select **Load more** to continue. The loaded count is distinct from the database-wide **Total Keys** count. Memory and distribution statistics describe loaded keys only.
 
+Opening the Key Distribution Chart uses those already-loaded results; it does not reset search, type filters, or scan progress.
+
 Scans are not snapshots: concurrent additions and deletions can change results. Refresh to begin a new scan after external changes. Continuations expire after 30 minutes and are scoped to the current browser connection; refresh after expiry or reconnection.
 
 ### Search and Filter

@@ -23,6 +23,7 @@ import {
 import { keyBrowserEpic } from "./keyBrowserEpic"
 import type { Store } from "@reduxjs/toolkit"
 
+/** Subscribes application workflows to the action stream using the active store. */
 export const registerEpics = (store: Store) => {
   merge(
     wsConnectionEpic(store),

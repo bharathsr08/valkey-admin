@@ -8,6 +8,7 @@ type Progress = { client: Client; query: string; nodes: NodeScan[]; expires: num
 const continuations = new WeakMap<object, Map<string, Progress>>()
 const lifetime = 30 * 60 * 1000
 export class KeyScanExpiredError extends Error {
+  /** Marks an unusable continuation so the UI offers a fresh scan instead of retry. */
   constructor() {
     super("Key scan expired or changed. Restart the scan to continue.")
   }

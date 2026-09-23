@@ -173,6 +173,7 @@ function TreeNodeItem({ node, level, selectedKey, onKeyClick, loading }: TreeNod
   )
 }
 
+/** Renders loaded keys by namespace with scroll and explicit pagination controls. */
 export function KeyTree({
   keys, selectedKey, onKeyClick, loading, hasMore, pageLoading, error, restartRequired, onLoadMore,
 }: KeyTreeProps) {

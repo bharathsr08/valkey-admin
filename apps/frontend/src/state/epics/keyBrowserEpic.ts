@@ -13,6 +13,7 @@ import {
 import { action$, select } from "../middleware/rxjsMiddleware/rxjsMiddleware"
 import type { Store } from "@reduxjs/toolkit"
 
+/** Sends key actions and resumes scans with saved filters, guarding concurrent loads. */
 export const keyBrowserEpic = (store: Store) =>
   merge(
     action$.pipe(

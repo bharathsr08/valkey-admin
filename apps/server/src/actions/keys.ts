@@ -2,6 +2,7 @@ import { VALKEY, type KeyPageRequest } from "valkey-common"
 import { addKey, deleteKey, getKeyInfoSingle, getKeys, updateKey } from "../keys-browser"
 import { type Deps, withDeps } from "./utils"
 
+/** Resolves the requested connection and delegates a filtered key-page request. */
 export const getKeysRequested = withDeps<Deps, void>(
   async ({ ws, clients, connectionId, action }) => {
     const connection = clients.get(connectionId)

@@ -448,6 +448,7 @@ export async function getKeyInfo(
 }
 
 const limit = pLimit(10) 
+/** Enriches one bounded scan page and replies with its continuation and request ID. */
 export async function getKeys(
   client: GlideClient | GlideClusterClient,
   ws: WebSocket,

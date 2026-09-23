@@ -53,6 +53,7 @@ interface KeyInfo {
   elements?: any;
 }
 
+/** Renders filtered, incrementally loaded keys and dispatches browsing intents. */
 export function KeyBrowser() {
   const { id, clusterId } = useParams()
   const dispatch = useAppDispatch()
