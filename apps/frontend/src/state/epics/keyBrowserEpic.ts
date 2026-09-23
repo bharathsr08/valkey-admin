@@ -1,17 +1,30 @@
 import { tap } from "rxjs/operators"
 import { merge } from "rxjs"
+import { selectKeyBrowserState } from "../valkey-features/keys/keyBrowserSelectors"
 import { getSocket } from "./wsEpics"
 import {
   getKeysRequested,
+  loadMoreKeys,
   getKeyTypeRequested,
   deleteKeyRequested,
   addKeyRequested,
   updateKeyRequested
 } from "../valkey-features/keys/keyBrowserSlice"
 import { action$, select } from "../middleware/rxjsMiddleware/rxjsMiddleware"
+import type { Store } from "@reduxjs/toolkit"
 
-export const keyBrowserEpic = () =>
+export const keyBrowserEpic = (store: Store) =>
   merge(
+    action$.pipe(
+      select(loadMoreKeys),
+      tap(({ payload: { connectionId } }) => {
+        const state = selectKeyBrowserState(connectionId)(store.getState())
+        if (state.pageLoading || state.loading || !state.cursor || state.cursor === "0") return
+        store.dispatch(getKeysRequested({
+          connectionId, cursor: state.restartRequired ? undefined : state.cursor, pattern: state.pattern, keyType: state.keyType,
+        }))
+      }),
+    ),
     // for getting all keys (getKeys)
     action$.pipe(
       select(getKeysRequested),

@@ -1,19 +1,13 @@
-import { VALKEY } from "valkey-common"
+import { VALKEY, type KeyPageRequest } from "valkey-common"
 import { addKey, deleteKey, getKeyInfoSingle, getKeys, updateKey } from "../keys-browser"
 import { type Deps, withDeps } from "./utils"
-
-type GetKeysPayload = {
-  connectionId: string;
-  pattern?: string | undefined;
-  count?: number | undefined;
-}
 
 export const getKeysRequested = withDeps<Deps, void>(
   async ({ ws, clients, connectionId, action }) => {
     const connection = clients.get(connectionId)
 
     if (connection) {
-      await getKeys(connection.client, ws, action.payload as GetKeysPayload)
+      await getKeys(connection.client, ws, action.payload as KeyPageRequest)
     } else {
       ws.send(
         JSON.stringify({
@@ -21,6 +15,7 @@ export const getKeysRequested = withDeps<Deps, void>(
           payload: {
             connectionId,
             error: "Invalid connection Id",
+            requestId: action.payload.requestId,
           },
         }),
       )
