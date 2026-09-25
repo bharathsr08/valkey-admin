@@ -36,10 +36,13 @@ Some commands are restricted to prevent accidental server disruption.
 
 **Blocked commands** — cannot be executed through Send Command on standalone or cluster connections:
 
-`SELECT`, `AUTH`, `HELLO`, `RESET`, and `QUIT` are blocked because they can change the shared connection's database, authentication, protocol, or lifecycle. These restrictions are enforced in both the UI (including history reruns) and the backend, with no confirmation override. They do not restrict the application's internal connection setup.
-
 | Command | Reason |
 |---------|--------|
+| `SELECT` | Changes the selected database on the shared connection |
+| `AUTH` | Changes authentication on the shared connection |
+| `HELLO` | Can change the protocol, authentication, and name of the shared connection |
+| `RESET` | Resets the shared connection's state |
+| `QUIT` | Closes the shared connection |
 | `SHUTDOWN` | Stops the server and cannot be undone remotely |
 | `DEBUG` | Can cause crashes or data corruption |
 | `FLUSHALL` | Deletes all keys in all databases |
@@ -55,8 +58,6 @@ Some commands are restricted to prevent accidental server disruption.
 | `SLAVEOF` | Changes replication topology |
 | `REPLICAOF` | Changes replication topology |
 | `CLUSTER RESET` | Resets cluster state and may cause data loss |
-
-Database-selection UI is tracked separately in [issue #519](https://github.com/valkey-io/valkey-admin/issues/519); this change only restricts commands in Send Command.
 
 ## Features
 
